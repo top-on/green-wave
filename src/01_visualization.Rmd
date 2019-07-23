@@ -1,0 +1,82 @@
+# Green light
+
+## Libraries
+```{r message=FALSE}
+
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+
+```
+
+## Load data
+```{r}
+
+df <- 
+  read.csv("../data/raw/11_4070_2019.07.11_00-00_2019.07.12_00-00.csv",
+           sep = ";", skip = 1, fileEncoding = "iso-8859-1") %>% 
+  mutate(timestamp = ymd_hms(time)) %>% 
+  arrange(timestamp) %>% 
+  mutate(duration = as.numeric(lead(timestamp) - timestamp))
+
+```
+
+## Descriptive statistics
+```{r}
+
+df %>% pull(status) %>% unique
+
+print("Grün:")
+df %>% filter(status == "Grün") %>% pull(duration) %>% summary
+print("Rot:")
+df %>% filter(status == "Rot") %>% pull(duration) %>% summary
+print("Gelb:")
+df %>% filter(status == "Gelb") %>% pull(duration) %>% summary
+print("Rot/Gelb:")
+df %>% filter(status == "Rot/Gelb") %>% pull(duration) %>% summary
+
+df %>% pull(timestamp) %>% summary
+
+```
+
+## Distribution of duration of "Grün"
+```{r}
+
+df %>% filter(status == "Grün") %>% pull(duration) %>% table
+
+df %>% 
+  filter(status == "Grün") %>%
+  select(duration) %>% 
+  ggplot(aes(x = duration)) +
+  geom_histogram(bins = 80) +
+  scale_x_continuous(breaks = seq(5, 80, by = 3)) +
+  theme_bw()
+
+```
+
+## Plot green duration, depending on previous green duration
+```{r}
+
+df %>% 
+  filter(status == "Grün") %>%
+  select(duration) %>% 
+  mutate(duration_previous = lag(duration)) %>% 
+  ggplot(aes(x = duration_previous, y = duration)) +
+  geom_point(alpha = 0.1) +
+  theme_bw()
+
+```
+
+## Duration over the course of days
+```{r}
+
+df %>% 
+  filter(status == "Grün") %>%
+  mutate(hour = as.factor(hour(timestamp) + 2)) %>% 
+  select(hour, duration) %>% 
+  ggplot(aes(x = hour, y = duration)) + 
+  geom_boxplot() +
+  scale_y_continuous(breaks = seq(5, 80, by = 5)) +
+  theme_bw()
+
+```
