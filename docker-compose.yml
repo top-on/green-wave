@@ -1,0 +1,7 @@
+version: "3"
+services:
+  rstudio:
+    build:
+      dockerfile: Dockerfile
+    ports:
+            - 3838:3838
