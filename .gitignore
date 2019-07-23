@@ -1,9 +1,11 @@
 # data dir
 /data
-
+!/data/raw/
 
 
 ## R
+.Rproj
+
 # History files
 .Rhistory
 .Rapp.history
