@@ -1,3 +1,9 @@
+# data dir
+/data
+
+
+
+## R
 # History files
 .Rhistory
 .Rapp.history
