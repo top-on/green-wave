@@ -1,0 +1,153 @@
+# Green light
+
+## Libraries
+```{r message=FALSE}
+
+library(assertthat)
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(xgboost)
+
+```
+
+## Load data
+```{r}
+
+df <- 
+  read.csv("../data/raw/11_4070_2019.07.11_00-00_2019.07.12_00-00.csv",
+           sep = ";", skip = 1, fileEncoding = "iso-8859-1") %>% 
+  # drop redundant column
+  select(-value) %>% 
+  # time
+  mutate(timestamp = ymd_hms(time, tz = "Europe/Berlin")) %>%
+  arrange(timestamp) %>% 
+  select(-time) %>% 
+  # duration of phase
+  mutate(duration = as.numeric(lead(timestamp) - timestamp)) %>% 
+  # only use green and red phases
+  filter(status %in% c("Rot", "Grün"))
+
+df
+
+```
+
+# Feature engineering
+```{r}
+
+# TODO: assert that timestamp is ascenting
+
+df_features <-
+  df %>% 
+  # temporal features
+  mutate(hour = hour(timestamp)) %>% 
+  mutate(minute = minute(timestamp)) %>% 
+  select(-timestamp) %>% 
+  # lagged features
+  mutate(lag1_other = lag(duration, 1),
+         lag1_same  = lag(duration, 2),
+         lag2_other = lag(duration, 3),
+         lag2_same  = lag(duration, 4),
+         lag3_other = lag(duration, 5),
+         lag3_same  = lag(duration, 6),
+         lag4_other = lag(duration, 7),
+         lag4_same  = lag(duration, 8)) %>% 
+  # differences
+  # TODO
+  # remove rows with NA in target variable
+  filter(!is.na(duration))
+
+df_features
+
+assert_that(!any(is.na(duration)))
+
+```
+
+# Encoding
+```{r}
+
+df_encoded <-
+  df_features %>% 
+  mutate(status_enc = ifelse(status == "Grün", 1, 0)) %>% 
+  select(-status)
+
+df_encoded
+  
+```
+
+
+# Train model
+```{r}
+
+X <- df_encoded %>% select(-duration)
+y <- df_encoded$duration
+dtrain <- xgb.DMatrix(as.matrix(X), 
+                      label = y)
+
+params <- list(max_depth = 3,
+               eta = 0.1,
+               gamma = 0.5,
+               min_child_weight = 1,
+               subsample = .9,
+               colsample_bytree = .9,
+               num_parallel_tree = 1)
+
+callbacks <- list(cb.cv.predict(save_models = TRUE))
+
+set.seed(42)
+cv <- xgb.cv(data = dtrain,
+             params = params,
+             nrounds = 1000,
+             nfold = 5,
+             metrics = c("rmse"),
+             objective = "reg:linear",
+             prediction = TRUE,
+             print_every_n = 50,
+             early_stopping_rounds = 100,
+             callbacks = callbacks)
+
+```
+
+# Compare predictions to truth
+```{r}
+
+df_pred <- df_features
+df_pred$pred <- cv$pred
+df_pred$error <- df_pred$duration - df_pred$pred
+
+df_pred %>%
+  filter(complete.cases(.)) %>% 
+  # plot
+  ggplot(aes(x = duration, y = pred, color = status)) +
+  geom_point() + 
+  coord_fixed() +
+  geom_abline(intercept = 0, slope = 1) +
+  theme_bw()
+
+```
+
+# Plot residuals
+```{r}
+
+df_pred %>% 
+  ggplot(aes(x = error)) +
+  geom_histogram(bins = 100) +
+  theme_bw()
+
+```
+
+## Plot feature importance
+```{r}
+
+xgb.importance(feature_names = names(X),
+               model = cv$models[[1]]) %>% 
+  select(feature = Feature, information_gain = Gain) %>%
+  mutate(feature = as.factor(feature)) %>% 
+  mutate(feature = reorder(feature, information_gain)) %>% 
+  # bar plot
+  ggplot(aes(x = feature, y = information_gain)) +
+  geom_col() +
+  theme_bw() +
+  coord_flip()
+
+```
