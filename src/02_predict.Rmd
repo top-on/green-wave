@@ -132,6 +132,7 @@ df_pred %>%
 df_pred %>% 
   ggplot(aes(x = error)) +
   geom_histogram(bins = 100) +
+  scale_x_continuous(breaks = seq(-50, 50, by = 5)) +
   theme_bw()
 
 ```
