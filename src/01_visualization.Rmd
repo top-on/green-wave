@@ -12,10 +12,10 @@ library(ggplot2)
 ## Load data
 ```{r}
 
-df <- 
+df <-
   read.csv("../data/raw/11_4070_2019.07.11_00-00_2019.07.12_00-00.csv",
            sep = ";", skip = 1, fileEncoding = "iso-8859-1") %>% 
-  mutate(timestamp = ymd_hms(time)) %>% 
+  mutate(timestamp = ymd_hms(time, tz = "Europe/Berlin")) %>% 
   arrange(timestamp) %>% 
   mutate(duration = as.numeric(lead(timestamp) - timestamp))
 
@@ -39,9 +39,10 @@ df %>% pull(timestamp) %>% summary
 
 ```
 
-## Distribution of duration of "Grün"
+## Distribution of duration of "Rot"
 ```{r}
 
+# green
 df %>% filter(status == "Grün") %>% pull(duration) %>% table
 
 df %>% 
@@ -52,27 +53,35 @@ df %>%
   scale_x_continuous(breaks = seq(5, 80, by = 3)) +
   theme_bw()
 
-```
-
-## Plot green duration, depending on previous green duration
-```{r}
+# red
+df %>% filter(status == "Rot") %>% pull(duration) %>% table
 
 df %>% 
-  filter(status == "Grün") %>%
+  filter(status == "Rot") %>%
   select(duration) %>% 
-  mutate(duration_previous = lag(duration)) %>% 
-  ggplot(aes(x = duration_previous, y = duration)) +
-  geom_point(alpha = 0.1) +
+  ggplot(aes(x = duration)) +
+  geom_histogram(bins = 80) +
+  scale_x_continuous(breaks = seq(5, 80, by = 3)) +
   theme_bw()
 
 ```
 
-## Duration over the course of days
+
+## Durations over the course of days
 ```{r}
 
 df %>% 
   filter(status == "Grün") %>%
-  mutate(hour = as.factor(hour(timestamp) + 2)) %>% 
+  mutate(hour = as.factor(hour(timestamp))) %>% 
+  select(hour, duration) %>% 
+  ggplot(aes(x = hour, y = duration)) + 
+  geom_boxplot() +
+  scale_y_continuous(breaks = seq(5, 80, by = 5)) +
+  theme_bw()
+
+df %>% 
+  filter(status == "Rot") %>%
+  mutate(hour = as.factor(hour(timestamp))) %>% 
   select(hour, duration) %>% 
   ggplot(aes(x = hour, y = duration)) + 
   geom_boxplot() +
@@ -80,3 +89,69 @@ df %>%
   theme_bw()
 
 ```
+
+## Plot duration, depending on previous durations
+```{r}
+
+# green vs. previous green
+df %>% 
+  filter(status == "Grün") %>%
+  select(duration) %>% 
+  mutate(duration_lag_green = lag(duration)) %>% 
+  ggplot(aes(x = duration_lag_green, y = duration)) +
+  geom_point(alpha = 0.1) +
+  theme_bw()
+
+# red vs. previous red
+df %>% 
+  filter(status == "Rot") %>%
+  select(duration) %>% 
+  mutate(duration_lag_red = lag(duration)) %>% 
+  ggplot(aes(x = duration_lag_red, y = duration)) +
+  geom_point(alpha = 0.1) +
+  theme_bw()
+
+# green vs. previous red
+df %>% 
+  filter(status %in% c("Rot", "Grün")) %>%
+  select(status, duration) %>% 
+  mutate(duration_lag_other = lag(duration)) %>%
+  filter(status == "Grün") %>% 
+  # plot
+  ggplot(aes(x = duration_lag_other, y = duration)) +
+  geom_point(alpha = 0.1) +
+  theme_bw()
+
+# red vs. previous green
+df %>% 
+  filter(status %in% c("Rot", "Grün")) %>%
+  select(status, duration) %>% 
+  mutate(duration_lag_other = lag(duration)) %>%
+  filter(status == "Rot") %>% 
+  # plot
+  ggplot(aes(x = duration_lag_other, y = duration)) +
+  geom_point(alpha = 0.1) +
+  theme_bw()
+
+# green vs. previous green (two steps)
+df %>% 
+  filter(status == "Grün") %>%
+  select(duration) %>% 
+  mutate(duration_lag_green = lag(duration, 2)) %>% 
+  ggplot(aes(x = duration_lag_green, y = duration)) +
+  geom_point(alpha = 0.1) +
+  theme_bw()
+
+```
+
+## Autocorrelation plot
+```{r}
+
+df %>% 
+  filter(status == "Grün") %>%
+  filter(complete.cases(.)) %>% 
+  pull(duration) %>%
+  acf()
+
+```
+
