@@ -42,6 +42,8 @@ df_features <-
   # temporal features
   mutate(hour = hour(timestamp)) %>% 
   mutate(minute = minute(timestamp)) %>% 
+  # green phases seem to have a day and a night mode
+  mutate(is_day = (hour >= 6 & hour <= 20)) %>% #
   select(-timestamp) %>% 
   # lagged features
   mutate(lag1_other = lag(duration, 1),
