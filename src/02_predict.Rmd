@@ -59,7 +59,7 @@ df_features <-
 
 df_features
 
-assert_that(!any(is.na(duration)))
+assert_that(!any(is.na(df_features$duration)))
 
 ```
 
