@@ -6,6 +6,7 @@
 library(dplyr)
 library(lubridate)
 library(ggplot2)
+library(assertthat)
 
 ```
 
@@ -119,6 +120,15 @@ df %>%
   labs(title = "Red vs. previous red") +
   ylab("duration_current_red")
 
+# lets test whether red and green phases are always alternating
+assert_that(df %>% 
+              filter(status %in% c("Rot", "Grün")) %>%
+              select(status) %>% 
+              mutate(prev_status = lag(status)) %>%
+              filter(complete.cases(.)) %>% 
+              mutate(status_equals_previous = status == prev_status) %>% 
+              summarise(sum(status_equals_previous)) %>% 
+              as.numeric() == 0)
 
 # green vs. previous red
 df %>% 
