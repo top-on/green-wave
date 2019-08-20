@@ -148,7 +148,7 @@ template %+%
   (df_pred %>% filter(error > -20 & error < 20)) %+% 
   labs(title = "Residuals without outliers")
 
-
+rm(template)
 
 ```
 
