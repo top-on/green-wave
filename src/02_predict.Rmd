@@ -167,3 +167,11 @@ xgb.importance(feature_names = names(X),
   coord_flip()
 
 ```
+
+## Calculate RMSE
+```{r}
+rmse <- sqrt(mean(df_pred$error^2))
+
+rmse
+```
+
