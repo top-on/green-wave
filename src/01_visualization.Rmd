@@ -6,6 +6,7 @@
 library(dplyr)
 library(lubridate)
 library(ggplot2)
+library(assertthat)
 
 ```
 
@@ -51,7 +52,8 @@ df %>%
   ggplot(aes(x = duration)) +
   geom_histogram(bins = 80) +
   scale_x_continuous(breaks = seq(5, 80, by = 3)) +
-  theme_bw()
+  theme_bw() +
+  labs(title = "Distribution of green phase duration")
 
 # red
 df %>% filter(status == "Rot") %>% pull(duration) %>% table
@@ -62,7 +64,8 @@ df %>%
   ggplot(aes(x = duration)) +
   geom_histogram(bins = 80) +
   scale_x_continuous(breaks = seq(5, 80, by = 3)) +
-  theme_bw()
+  theme_bw() +
+  labs(title = "Distribution of red phase duration")
 
 ```
 
@@ -77,7 +80,8 @@ df %>%
   ggplot(aes(x = hour, y = duration)) + 
   geom_boxplot() +
   scale_y_continuous(breaks = seq(5, 80, by = 5)) +
-  theme_bw()
+  theme_bw() +
+  labs(title = "Distribution of green phase duration per hour")
 
 df %>% 
   filter(status == "Rot") %>%
@@ -86,7 +90,8 @@ df %>%
   ggplot(aes(x = hour, y = duration)) + 
   geom_boxplot() +
   scale_y_continuous(breaks = seq(5, 80, by = 5)) +
-  theme_bw()
+  theme_bw() +
+  labs(title = "Distribution of red phase duration per hour")
 
 ```
 
@@ -100,7 +105,9 @@ df %>%
   mutate(duration_lag_green = lag(duration)) %>% 
   ggplot(aes(x = duration_lag_green, y = duration)) +
   geom_point(alpha = 0.1) +
-  theme_bw()
+  theme_bw() +
+  labs(title = "Green vs. previous green") +
+  ylab("duration_current_green")
 
 # red vs. previous red
 df %>% 
@@ -109,7 +116,19 @@ df %>%
   mutate(duration_lag_red = lag(duration)) %>% 
   ggplot(aes(x = duration_lag_red, y = duration)) +
   geom_point(alpha = 0.1) +
-  theme_bw()
+  theme_bw() +
+  labs(title = "Red vs. previous red") +
+  ylab("duration_current_red")
+
+# lets test whether red and green phases are always alternating
+assert_that(df %>% 
+              filter(status %in% c("Rot", "Grün")) %>%
+              select(status) %>% 
+              mutate(prev_status = lag(status)) %>%
+              filter(complete.cases(.)) %>% 
+              mutate(status_equals_previous = status == prev_status) %>% 
+              summarise(sum(status_equals_previous)) %>% 
+              as.numeric() == 0)
 
 # green vs. previous red
 df %>% 
@@ -120,7 +139,10 @@ df %>%
   # plot
   ggplot(aes(x = duration_lag_other, y = duration)) +
   geom_point(alpha = 0.1) +
-  theme_bw()
+  theme_bw() +
+  labs(title = "Green vs. previous red") +
+  ylab("duration_current_green") +
+  xlab("duration_previous_red")
 
 # red vs. previous green
 df %>% 
@@ -131,7 +153,10 @@ df %>%
   # plot
   ggplot(aes(x = duration_lag_other, y = duration)) +
   geom_point(alpha = 0.1) +
-  theme_bw()
+  theme_bw() +
+  labs(title = "Red vs. previous green") +
+  ylab("duration_current_red") +
+  xlab("duration_previous_green")
 
 # green vs. previous green (two steps)
 df %>% 
@@ -140,7 +165,9 @@ df %>%
   mutate(duration_lag_green = lag(duration, 2)) %>% 
   ggplot(aes(x = duration_lag_green, y = duration)) +
   geom_point(alpha = 0.1) +
-  theme_bw()
+  theme_bw() +
+  labs(title = "Green vs. previous green two steps") +
+  ylab("duration_current_green")
 
 ```
 
