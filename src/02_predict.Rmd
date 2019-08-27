@@ -28,7 +28,7 @@ df <-
   # only use green and red phases
   filter(status %in% c("Rot", "Grün"))
 
-df
+df %>% head
 
 ```
 
@@ -61,7 +61,7 @@ df_features <-
   # remove rows with NA in target variable
   filter(!is.na(duration))
 
-df_features
+df_features %>% head
 
 assert_that(!any(is.na(df_features$duration)))
 
@@ -75,8 +75,8 @@ df_encoded <-
   mutate(status_enc = ifelse(status == "Grün", 1, 0)) %>% 
   select(-status)
 
-df_encoded
-  
+df_encoded %>% head
+
 ```
 
 
@@ -109,6 +109,22 @@ cv <- xgb.cv(data = dtrain,
              print_every_n = 50,
              early_stopping_rounds = 100,
              callbacks = callbacks)
+
+```
+
+## Plot feature importance
+```{r}
+
+xgb.importance(feature_names = names(X),
+               model = cv$models[[1]]) %>% 
+  select(feature = Feature, information_gain = Gain) %>%
+  mutate(feature = as.factor(feature)) %>% 
+  mutate(feature = reorder(feature, information_gain)) %>% 
+  # bar plot
+  ggplot(aes(x = feature, y = information_gain)) +
+  geom_col() +
+  theme_bw() +
+  coord_flip()
 
 ```
 
@@ -149,22 +165,6 @@ template %+%
   labs(title = "Residuals without outliers")
 
 rm(template)
-
-```
-
-## Plot feature importance
-```{r}
-
-xgb.importance(feature_names = names(X),
-               model = cv$models[[1]]) %>% 
-  select(feature = Feature, information_gain = Gain) %>%
-  mutate(feature = as.factor(feature)) %>% 
-  mutate(feature = reorder(feature, information_gain)) %>% 
-  # bar plot
-  ggplot(aes(x = feature, y = information_gain)) +
-  geom_col() +
-  theme_bw() +
-  coord_flip()
 
 ```
 
