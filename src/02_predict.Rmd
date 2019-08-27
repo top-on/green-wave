@@ -133,13 +133,13 @@ xgb.importance(feature_names = names(X),
 
 df_pred <- df_features
 df_pred$pred <- cv$pred
-df_pred$error <- df_pred$duration - df_pred$pred
+df_pred$error <- df_pred$pred - df_pred$duration
 
 df_pred %>%
   filter(complete.cases(.)) %>% 
   # plot
   ggplot(aes(x = duration, y = pred, color = status)) +
-  geom_point() + 
+  geom_point(alpha = 0.15) + 
   coord_fixed() +
   geom_abline(intercept = 0, slope = 1) +
   theme_bw()
@@ -167,6 +167,35 @@ template %+%
 rm(template)
 
 ```
+
+# Percentiles of residuals
+### Scenario: deliberately unter-estimating duration of green and over-estimating duration of red to be "on the safe side" 
+```{r}
+
+print("Status = Grün:")
+errors_green <-
+  df_pred %>% 
+  filter(status == "Grün") %>% 
+  pull(error)
+
+errors_green %>% summary
+errors_green %>% quantile(., 0.01)
+errors_green %>% quantile(., 0.05)
+errors_green %>% quantile(., 0.10)
+
+print("Status = Rot:")
+errors_red <-
+  df_pred %>% 
+  filter(status == "Rot") %>% 
+  pull(error) %>% 
+  summary
+
+errors_red %>% summary
+errors_red %>% quantile(., 0.59)
+errors_red %>% quantile(., 0.99)
+
+```
+
 
 ## Calculate RMSE
 ```{r}
