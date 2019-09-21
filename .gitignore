@@ -2,6 +2,9 @@
 /data
 !/data/raw/
 
+# python
+.vscode
+__pycache__
 
 ## R
 *.Rproj

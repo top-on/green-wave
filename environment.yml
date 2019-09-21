@@ -1,0 +1,15 @@
+name: green-wave
+
+dependencies:
+  - python=3.7
+  - pip
+  - pip:
+    - fastapi
+    - requests
+    # dev
+    - bandit
+    - black
+    - flake8
+    - jupyter
+    - mypy
+    - pytest==5.0.1
